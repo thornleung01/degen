@@ -1,0 +1,14 @@
+# Basketball Stats Prediction Tool - Dependencies
+
+# Core dependencies (required)
+pandas>=1.5.0
+numpy>=1.24.0
+
+# Data source (optional - for real Basketball Reference data)
+basketball-reference-scraper>=2.0.0
+
+# Advanced statistics (optional - for normal distribution analysis)
+scipy>=1.10.0
+
+# Note: Install with --break-system-packages flag if needed
+# pip install -r requirements.txt --break-system-packages
