@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basketball Stats Predictor</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <style>
+        :root {
+            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-success: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            --gradient-danger: linear-gradient(135deg, #cb2d3e 0%, #ef473a 100%);
+            --gradient-warning: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        }
+
+        [data-bs-theme="light"] body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+
+        .hero-section {
+            padding: 2rem 0;
+            text-align: center;
+        }
+
+        .hero-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .card-glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+        }
+
+        [data-bs-theme="light"] .card-glass {
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .form-control, .form-select {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: inherit;
+        }
+
+        [data-bs-theme="light"] .form-control,
+        [data-bs-theme="light"] .form-select {
+            background: white;
+            border: 1px solid #dee2e6;
+        }
+
+        .form-control:focus, .form-select:focus {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.25);
+        }
+
+        .btn-analyze {
+            background: var(--gradient-primary);
+            border: none;
+            padding: 0.75rem 2rem;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-analyze:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .probability-display {
+            font-size: 4rem;
+            font-weight: 800;
+            text-align: center;
+        }
+
+        .probability-success {
+            background: var(--gradient-success);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .probability-warning {
+            background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .probability-danger {
+            background: var(--gradient-danger);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .recommendation-badge {
+            display: inline-block;
+            padding: 0.5rem 1.5rem;
+            border-radius: 2rem;
+            font-weight: 700;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .recommendation-success {
+            background: var(--gradient-success);
+            color: white;
+        }
+
+        .recommendation-danger {
+            background: var(--gradient-danger);
+            color: white;
+        }
+
+        .recommendation-warning {
+            background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
+            color: #333;
+        }
+
+        .confidence-meter {
+            height: 12px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            border-radius: 6px;
+            background: var(--gradient-primary);
+            transition: width 0.5s ease-out;
+        }
+
+        .hit-miss-chart {
+            max-width: 200px;
+            margin: 0 auto;
+        }
+
+        .games-table {
+            font-size: 0.9rem;
+        }
+
+        .games-table th {
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+
+        .hit-row {
+            background: rgba(17, 153, 142, 0.2) !important;
+        }
+
+        .miss-row {
+            background: rgba(203, 45, 62, 0.2) !important;
+        }
+
+        .autocomplete-container {
+            position: relative;
+        }
+
+        .autocomplete-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: rgba(30, 30, 50, 0.98);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 0.5rem;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        [data-bs-theme="light"] .autocomplete-dropdown {
+            background: white;
+            border: 1px solid #dee2e6;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .autocomplete-dropdown.show {
+            display: block;
+        }
+
+        .autocomplete-item {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .autocomplete-item:hover,
+        .autocomplete-item.active {
+            background: rgba(102, 126, 234, 0.3);
+        }
+
+        .spinner-container {
+            display: none;
+            text-align: center;
+            padding: 3rem;
+        }
+
+        .spinner-container.show {
+            display: block;
+        }
+
+        .results-section {
+            display: none;
+        }
+
+        .results-section.show {
+            display: block;
+        }
+
+        .error-alert {
+            display: none;
+        }
+
+        .error-alert.show {
+            display: block;
+        }
+
+        .comparison-card {
+            position: relative;
+        }
+
+        .comparison-remove {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: rgba(203, 45, 62, 0.8);
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            color: white;
+            font-size: 0.8rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .comparison-remove:hover {
+            background: rgba(203, 45, 62, 1);
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1000;
+        }
+
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 1.8rem;
+            }
+
+            .probability-display {
+                font-size: 3rem;
+            }
+
+            .stat-value {
+                font-size: 1.25rem;
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Theme Toggle -->
+    <button class="btn btn-outline-light theme-toggle" onclick="toggleTheme()" title="Toggle Theme">
+        <i class="bi bi-sun-fill" id="theme-icon"></i>
+    </button>
+
+    <div class="container py-4">
+        <!-- Hero Section -->
+        <div class="hero-section mb-4">
+            <h1 class="hero-title">
+                <i class="bi bi-dribbble"></i> Basketball Stats Predictor
+            </h1>
+            <p class="text-muted">Analyze player performance and predict stat outcomes</p>
+        </div>
+
+        <div class="row g-4">
+            <!-- Input Form -->
+            <div class="col-lg-4">
+                <div class="card-glass p-4">
+                    <h5 class="mb-4"><i class="bi bi-sliders"></i> Analysis Parameters</h5>
+
+                    <form id="prediction-form">
+                        <!-- Player Name -->
+                        <div class="mb-3 autocomplete-container">
+                            <label class="form-label">Player Name</label>
+                            <input type="text"
+                                   class="form-control"
+                                   id="player-input"
+                                   name="player"
+                                   placeholder="Start typing a player name..."
+                                   autocomplete="off"
+                                   required>
+                            <div class="autocomplete-dropdown" id="autocomplete-dropdown"></div>
+                        </div>
+
+                        <!-- Stat Type -->
+                        <div class="mb-3">
+                            <label class="form-label">Stat Type</label>
+                            <select class="form-select" id="stat-select" name="stat" required>
+                                <option value="">Select a stat...</option>
+                                {% for value, label in stat_types.items() %}
+                                <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Threshold -->
+                        <div class="mb-3">
+                            <label class="form-label">Threshold / Line</label>
+                            <input type="number"
+                                   class="form-control"
+                                   id="threshold-input"
+                                   name="threshold"
+                                   placeholder="e.g., 25.5"
+                                   step="0.5"
+                                   min="0"
+                                   required>
+                        </div>
+
+                        <!-- Games to Analyze -->
+                        <div class="mb-3">
+                            <label class="form-label">Games to Analyze</label>
+                            <select class="form-select" id="games-select" name="games">
+                                <option value="5">Last 5 Games</option>
+                                <option value="10" selected>Last 10 Games</option>
+                                <option value="15">Last 15 Games</option>
+                                <option value="20">Last 20 Games</option>
+                                <option value="full">Full Season</option>
+                            </select>
+                        </div>
+
+                        <!-- Opponent Filter -->
+                        <div class="mb-4">
+                            <label class="form-label">Opponent (Optional)</label>
+                            <input type="text"
+                                   class="form-control"
+                                   id="opponent-input"
+                                   name="opponent"
+                                   placeholder="e.g., LAL, BOS, MIA">
+                            <small class="text-muted">Use team abbreviations</small>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <button type="submit" class="btn btn-primary btn-analyze w-100">
+                            <i class="bi bi-graph-up-arrow"></i> Analyze
+                        </button>
+                    </form>
+
+                    <hr class="my-4">
+
+                    <!-- Add to Comparison -->
+                    <button class="btn btn-outline-secondary w-100" id="add-comparison-btn" disabled>
+                        <i class="bi bi-plus-circle"></i> Add to Comparison
+                    </button>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="col-lg-8">
+                <!-- Error Alert -->
+                <div class="alert alert-danger error-alert" id="error-alert">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <span id="error-message"></span>
+                </div>
+
+                <!-- Loading Spinner -->
+                <div class="spinner-container" id="loading-spinner">
+                    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-3 text-muted">Fetching player data...</p>
+                </div>
+
+                <!-- Results -->
+                <div class="results-section" id="results-section">
+                    <!-- Player Header -->
+                    <div class="card-glass p-4 mb-4 fade-in">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <h3 class="mb-1" id="result-player-name">-</h3>
+                                <p class="text-muted mb-0">
+                                    <span id="result-stat-name">-</span>
+                                    <span class="mx-2">|</span>
+                                    <span id="result-threshold">-</span>+
+                                </p>
+                                <small class="text-muted" id="result-filters"></small>
+                            </div>
+                            <div class="col-md-6 text-md-end mt-3 mt-md-0">
+                                <span class="recommendation-badge" id="recommendation-badge">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Probability Display -->
+                    <div class="card-glass p-4 mb-4 fade-in">
+                        <div class="row">
+                            <div class="col-md-6 text-center">
+                                <p class="text-muted mb-2">Probability of Hitting</p>
+                                <div class="probability-display" id="probability-value">-</div>
+                                <small class="text-muted">Based on <span id="sample-size">-</span> games</small>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="text-muted mb-2">Confidence Level</p>
+                                <div class="d-flex align-items-center mb-2">
+                                    <span class="me-2 fw-bold" id="confidence-value">-</span>
+                                    <div class="confidence-meter flex-grow-1">
+                                        <div class="confidence-fill" id="confidence-fill" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                                <small class="text-muted">Based on consistency and sample size</small>
+
+                                <hr class="my-3">
+
+                                <p class="text-muted mb-2">Hit/Miss Record</p>
+                                <div class="d-flex align-items-center">
+                                    <div class="hit-miss-chart">
+                                        <canvas id="hit-miss-chart"></canvas>
+                                    </div>
+                                    <div class="ms-3">
+                                        <div><span class="text-success fw-bold" id="times-hit">-</span> times hit</div>
+                                        <div><span class="text-danger fw-bold" id="times-missed">-</span> times missed</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stats Cards -->
+                    <div class="row g-3 mb-4 fade-in">
+                        <div class="col-6 col-md-3">
+                            <div class="stat-card">
+                                <div class="stat-value" id="stat-average">-</div>
+                                <div class="stat-label">Average</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="stat-card">
+                                <div class="stat-value" id="stat-median">-</div>
+                                <div class="stat-label">Median</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="stat-card">
+                                <div class="stat-value" id="stat-range">-</div>
+                                <div class="stat-label">Range</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="stat-card">
+                                <div class="stat-value" id="stat-trend">-</div>
+                                <div class="stat-label">Trend</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hit Rates Chart -->
+                    <div class="card-glass p-4 mb-4 fade-in">
+                        <h6 class="mb-3"><i class="bi bi-bar-chart-fill"></i> Hit Rates at Different Lines</h6>
+                        <canvas id="hit-rates-chart" height="100"></canvas>
+                    </div>
+
+                    <!-- Data Source -->
+                    <div class="text-center mb-4">
+                        <small class="text-muted">
+                            <i class="bi bi-database"></i> Data Source: <span id="data-source">-</span>
+                        </small>
+                    </div>
+                </div>
+
+                <!-- Comparison Section -->
+                <div class="card-glass p-4 mt-4" id="comparison-section" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="mb-0"><i class="bi bi-people-fill"></i> Comparison View</h5>
+                        <button class="btn btn-sm btn-outline-danger" onclick="clearComparison()">
+                            <i class="bi bi-trash"></i> Clear All
+                        </button>
+                    </div>
+                    <div class="row g-3" id="comparison-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Global variables
+        let currentResult = null;
+        let comparisonList = [];
+        let hitMissChart = null;
+        let hitRatesChart = null;
+        let autocompleteIndex = -1;
+
+        // Players list from server
+        const players = {{ players | tojson }};
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initAutocomplete();
+            initForm();
+        });
+
+        // Theme toggle
+        function toggleTheme() {
+            const html = document.documentElement;
+            const icon = document.getElementById('theme-icon');
+
+            if (html.getAttribute('data-bs-theme') === 'dark') {
+                html.setAttribute('data-bs-theme', 'light');
+                icon.className = 'bi bi-moon-fill';
+            } else {
+                html.setAttribute('data-bs-theme', 'dark');
+                icon.className = 'bi bi-sun-fill';
+            }
+        }
+
+        // Autocomplete initialization
+        function initAutocomplete() {
+            const input = document.getElementById('player-input');
+            const dropdown = document.getElementById('autocomplete-dropdown');
+
+            input.addEventListener('input', function() {
+                const query = this.value.toLowerCase().trim();
+                dropdown.innerHTML = '';
+                autocompleteIndex = -1;
+
+                if (query.length < 2) {
+                    dropdown.classList.remove('show');
+                    return;
+                }
+
+                const matches = players.filter(p =>
+                    p.toLowerCase().includes(query)
+                ).slice(0, 10);
+
+                if (matches.length === 0) {
+                    dropdown.classList.remove('show');
+                    return;
+                }
+
+                matches.forEach((player, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'autocomplete-item';
+                    item.textContent = player;
+                    item.addEventListener('click', function() {
+                        input.value = player;
+                        dropdown.classList.remove('show');
+                    });
+                    dropdown.appendChild(item);
+                });
+
+                dropdown.classList.add('show');
+            });
+
+            // Keyboard navigation
+            input.addEventListener('keydown', function(e) {
+                const items = dropdown.querySelectorAll('.autocomplete-item');
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    autocompleteIndex = Math.min(autocompleteIndex + 1, items.length - 1);
+                    updateAutocompleteSelection(items);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    autocompleteIndex = Math.max(autocompleteIndex - 1, 0);
+                    updateAutocompleteSelection(items);
+                } else if (e.key === 'Enter' && autocompleteIndex >= 0) {
+                    e.preventDefault();
+                    input.value = items[autocompleteIndex].textContent;
+                    dropdown.classList.remove('show');
+                } else if (e.key === 'Escape') {
+                    dropdown.classList.remove('show');
+                }
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.classList.remove('show');
+                }
+            });
+        }
+
+        function updateAutocompleteSelection(items) {
+            items.forEach((item, index) => {
+                item.classList.toggle('active', index === autocompleteIndex);
+            });
+        }
+
+        // Form initialization
+        function initForm() {
+            const form = document.getElementById('prediction-form');
+
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
+
+                // Show loading, hide results
+                showLoading();
+
+                try {
+                    const response = await fetch('/predict', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(data)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.error) {
+                        showError(result.error);
+                    } else {
+                        currentResult = result;
+                        displayResults(result);
+                        document.getElementById('add-comparison-btn').disabled = false;
+                    }
+                } catch (error) {
+                    showError('Failed to connect to server. Please try again.');
+                    console.error(error);
+                }
+            });
+
+            // Add to comparison button
+            document.getElementById('add-comparison-btn').addEventListener('click', function() {
+                if (currentResult) {
+                    addToComparison(currentResult);
+                }
+            });
+        }
+
+        function showLoading() {
+            document.getElementById('loading-spinner').classList.add('show');
+            document.getElementById('results-section').classList.remove('show');
+            document.getElementById('error-alert').classList.remove('show');
+        }
+
+        function showError(message) {
+            document.getElementById('loading-spinner').classList.remove('show');
+            document.getElementById('results-section').classList.remove('show');
+            document.getElementById('error-alert').classList.add('show');
+            document.getElementById('error-message').textContent = message;
+        }
+
+        function displayResults(result) {
+            document.getElementById('loading-spinner').classList.remove('show');
+            document.getElementById('error-alert').classList.remove('show');
+            document.getElementById('results-section').classList.add('show');
+
+            // Player info
+            document.getElementById('result-player-name').textContent = result.player;
+            document.getElementById('result-stat-name').textContent = result.stat.toUpperCase();
+            document.getElementById('result-threshold').textContent = result.threshold;
+
+            // Filters
+            let filters = [];
+            if (result.opponent_filter) filters.push(`vs ${result.opponent_filter}`);
+            if (result.time_filter) filters.push(result.time_filter);
+            document.getElementById('result-filters').textContent = filters.join(' | ');
+
+            // Recommendation badge
+            const badge = document.getElementById('recommendation-badge');
+            badge.textContent = result.recommendation;
+            badge.className = 'recommendation-badge recommendation-' + result.recommendation_class;
+
+            // Probability
+            const probValue = document.getElementById('probability-value');
+            probValue.textContent = result.probability + '%';
+            probValue.className = 'probability-display probability-' + result.prob_class;
+
+            // Sample size
+            document.getElementById('sample-size').textContent = result.sample_size;
+
+            // Confidence
+            document.getElementById('confidence-value').textContent = result.confidence + '%';
+            document.getElementById('confidence-fill').style.width = result.confidence + '%';
+
+            // Hit/Miss
+            document.getElementById('times-hit').textContent = result.times_hit;
+            document.getElementById('times-missed').textContent = result.times_missed;
+
+            // Stats
+            document.getElementById('stat-average').textContent = result.average;
+            document.getElementById('stat-median').textContent = result.median;
+            document.getElementById('stat-range').textContent = result.min + ' - ' + result.max;
+            document.getElementById('stat-trend').textContent = result.trend.replace(/[^\w\s]/g, '').trim();
+
+            // Data source
+            document.getElementById('data-source').textContent = result.data_source;
+
+            // Charts
+            renderHitMissChart(result.times_hit, result.times_missed);
+            renderHitRatesChart(result.hit_rates);
+        }
+
+        function renderHitMissChart(hits, misses) {
+            const ctx = document.getElementById('hit-miss-chart').getContext('2d');
+
+            if (hitMissChart) {
+                hitMissChart.destroy();
+            }
+
+            hitMissChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Hit', 'Missed'],
+                    datasets: [{
+                        data: [hits, misses],
+                        backgroundColor: ['#11998e', '#cb2d3e'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    cutout: '60%'
+                }
+            });
+        }
+
+        function renderHitRatesChart(hitRates) {
+            const ctx = document.getElementById('hit-rates-chart').getContext('2d');
+
+            if (hitRatesChart) {
+                hitRatesChart.destroy();
+            }
+
+            const labels = Object.keys(hitRates);
+            const data = Object.values(hitRates);
+
+            hitRatesChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Hit Rate %',
+                        data: data,
+                        backgroundColor: data.map(v =>
+                            v >= 60 ? 'rgba(17, 153, 142, 0.8)' :
+                            v >= 40 ? 'rgba(247, 151, 30, 0.8)' :
+                            'rgba(203, 45, 62, 0.8)'
+                        ),
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: value => value + '%'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Comparison functionality
+        function addToComparison(result) {
+            // Check if already in comparison
+            const exists = comparisonList.some(r =>
+                r.player === result.player &&
+                r.stat === result.stat &&
+                r.threshold === result.threshold
+            );
+
+            if (exists) {
+                alert('This analysis is already in the comparison list.');
+                return;
+            }
+
+            comparisonList.push(result);
+            renderComparison();
+        }
+
+        function removeFromComparison(index) {
+            comparisonList.splice(index, 1);
+            renderComparison();
+        }
+
+        function clearComparison() {
+            comparisonList = [];
+            renderComparison();
+        }
+
+        function renderComparison() {
+            const section = document.getElementById('comparison-section');
+            const container = document.getElementById('comparison-container');
+
+            if (comparisonList.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+
+            section.style.display = 'block';
+            container.innerHTML = '';
+
+            comparisonList.forEach((result, index) => {
+                const card = document.createElement('div');
+                card.className = 'col-md-4';
+                card.innerHTML = `
+                    <div class="card-glass p-3 comparison-card">
+                        <button class="comparison-remove" onclick="removeFromComparison(${index})">
+                            <i class="bi bi-x"></i>
+                        </button>
+                        <h6 class="mb-2">${result.player}</h6>
+                        <small class="text-muted">${result.stat.toUpperCase()} ${result.threshold}+</small>
+                        <div class="probability-display probability-${result.prob_class}" style="font-size: 2rem;">
+                            ${result.probability}%
+                        </div>
+                        <span class="recommendation-badge recommendation-${result.recommendation_class}" style="font-size: 0.75rem; padding: 0.25rem 0.75rem;">
+                            ${result.recommendation}
+                        </span>
+                        <div class="mt-2">
+                            <small class="text-muted">Avg: ${result.average} | Med: ${result.median}</small>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+    </script>
+</body>
+</html>
